@@ -4,7 +4,8 @@
 - 영어 뉴스는 deep-translator로 한국어 번역
 - /news 명령어로 최신 뉴스 10개 제공
 """
-
+import os
+TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 import logging
 import asyncio
 import re
