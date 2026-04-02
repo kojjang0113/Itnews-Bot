@@ -1,23 +1,25 @@
 // ──────────────────────────────────────────────
-// 피드 목록 (배열 — 앞에서부터 순서대로 시도)
+// 피드 소스 정의 — 탭별로 순서대로 시도
+// type "rss2json" → JSON 응답, type "xml" → CORS-friendly XML 직접 fetch
 // ──────────────────────────────────────────────
-const FEEDS = {
+const FEED_SOURCES = {
   "TechCrunch": [
-    "https://techcrunch.com/feed/",
+    { label: "rss2json", type: "rss2json", url: "https://techcrunch.com/feed/" },
   ],
-  "BBC News": [
-    "https://feeds.bbci.co.uk/news/rss.xml",
+  "Google News": [
+    { label: "rss2json",  type: "rss2json", url: "https://news.google.com/rss?hl=ko&gl=KR&ceid=KR:ko" },
+    { label: "fetchrss",  type: "xml",      url: "https://fetchrss.com/rss?url=" + encodeURIComponent("https://news.google.com/rss?hl=ko&gl=KR&ceid=KR:ko") },
+    { label: "rsshub",    type: "xml",      url: "https://rsshub.app/google/news/world" },
   ],
-  "Ars Technica": [
-    "https://feeds.arstechnica.com/arstechnica/index",
+  "The Verge": [
+    { label: "rss2json",  type: "rss2json", url: "https://www.theverge.com/rss/index.xml" },
+    { label: "fetchrss",  type: "xml",      url: "https://fetchrss.com/rss?url=" + encodeURIComponent("https://www.theverge.com/rss/index.xml") },
+    { label: "rsshub",    type: "xml",      url: "https://rsshub.app/theverge/" },
   ],
 };
 
-// RSS2JSON 무료 API (CORS 없이 JSON 반환)
-const RSS2JSON = "https://api.rss2json.com/v1/api.json?rss_url=";
-
 // 현재 활성 탭
-let currentSource = "TechCrunch"; // 초기 탭
+let currentSource = "TechCrunch";
 // 탭별 피드 캐시
 const cache = {};
 
@@ -52,55 +54,93 @@ function stripHtml(text) {
 }
 
 // ──────────────────────────────────────────────
-// RSS2JSON API로 피드 가져오기 (URL 배열 순서대로 fallback)
+// RSS XML 파싱 (RSS 2.0 + Atom 공통)
+// ──────────────────────────────────────────────
+function parseXml(xmlText) {
+  const doc = new DOMParser().parseFromString(xmlText, "text/xml");
+  const items = [...doc.querySelectorAll("item, entry")].slice(0, 10);
+
+  return items.map((item) => {
+    const text = (sel) => item.querySelector(sel)?.textContent?.trim() ?? "";
+
+    // Atom <link href="..."> 와 RSS <link>텍스트 둘 다 처리
+    let link = text("link");
+    if (!link) link = item.querySelector("link")?.getAttribute("href") ?? "";
+
+    const summary =
+      text("description") ||
+      text("summary") ||
+      text("content") ||
+      item.getElementsByTagNameNS("*", "encoded")[0]?.textContent?.trim() ||
+      "";
+
+    return {
+      title:   stripHtml(text("title")),
+      link,
+      summary: stripHtml(summary),
+    };
+  });
+}
+
+// ──────────────────────────────────────────────
+// rss2json API (JSON 반환)
+// ──────────────────────────────────────────────
+async function fetchViaRss2Json(feedUrl) {
+  const res = await fetch(
+    `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feedUrl)}`,
+    { signal: AbortSignal.timeout(8000) }
+  );
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data = await res.json();
+  if (data.status !== "ok") throw new Error(data.message || "rss2json 응답 오류");
+
+  return data.items.slice(0, 10).map((item) => ({
+    title:   stripHtml(item.title || ""),
+    link:    item.link || "",
+    summary: stripHtml(item.content || item.description || ""),
+  }));
+}
+
+// ──────────────────────────────────────────────
+// XML 직접 fetch — fetchrss / rsshub 등 CORS-friendly 소스용
+// ──────────────────────────────────────────────
+async function fetchViaXml(proxyUrl) {
+  const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(8000) });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const text = await res.text();
+  if (!text || text.trim().startsWith("{")) throw new Error("XML이 아닌 응답");
+  const items = parseXml(text);
+  if (!items.length) throw new Error("파싱된 항목 없음");
+  return items;
+}
+
+// ──────────────────────────────────────────────
+// 피드 로드 — 소스 순서대로 fallback + console.log
 // ──────────────────────────────────────────────
 async function fetchFeed(source) {
-  const urls = FEEDS[source];
+  const sources = FEED_SOURCES[source];
   let lastError;
 
-  for (const feedUrl of urls) {
+  for (const src of sources) {
+    console.log(`[${source}] ${src.label} 시도 중... (${src.url})`);
     try {
-      const res = await fetch(RSS2JSON + encodeURIComponent(feedUrl));
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-      const data = await res.json();
-      if (data.status !== "ok") throw new Error(data.message || "피드 응답 오류");
-
-      // RSS2JSON items: { title, link, description, content, pubDate }
-      return data.items.slice(0, 10).map((item) => ({
-        title:   stripHtml(item.title || ""),
-        link:    item.link || "",
-        // content가 더 상세한 본문, 없으면 description 사용
-        summary: stripHtml(item.content || item.description || ""),
-      }));
+      const items =
+        src.type === "rss2json"
+          ? await fetchViaRss2Json(src.url)
+          : await fetchViaXml(src.url);
+      console.log(`[${source}] ${src.label} 성공 — ${items.length}건`);
+      return items;
     } catch (e) {
+      console.warn(`[${source}] ${src.label} 실패:`, e.message);
       lastError = e;
     }
   }
 
-  throw lastError;
+  throw new Error(`모든 소스 실패: ${lastError?.message}`);
 }
 
 // ──────────────────────────────────────────────
-// MyMemory 번역 API
-// ──────────────────────────────────────────────
-async function translateText(text) {
-  if (!text) return "";
-  const q = text.slice(0, 500);
-  try {
-    const res = await fetch(
-      `https://api.mymemory.translated.net/get?q=${encodeURIComponent(q)}&langpair=en|ko`
-    );
-    const data = await res.json();
-    if (data.responseStatus === 200) return data.responseData.translatedText || text;
-    return text;
-  } catch {
-    return text;
-  }
-}
-
-// ──────────────────────────────────────────────
-// 피드 로드
+// 피드 로드 (캐시 → fetchFeed → 렌더)
 // ──────────────────────────────────────────────
 async function loadFeed(source) {
   if (cache[source]) {
@@ -120,6 +160,24 @@ async function loadFeed(source) {
     renderCards(items, source);
   } catch (e) {
     showStatus(`피드 오류: ${e.message}`, true);
+  }
+}
+
+// ──────────────────────────────────────────────
+// MyMemory 번역 API
+// ──────────────────────────────────────────────
+async function translateText(text) {
+  if (!text) return "";
+  const q = text.slice(0, 500);
+  try {
+    const res = await fetch(
+      `https://api.mymemory.translated.net/get?q=${encodeURIComponent(q)}&langpair=en|ko`
+    );
+    const data = await res.json();
+    if (data.responseStatus === 200) return data.responseData.translatedText || text;
+    return text;
+  } catch {
+    return text;
   }
 }
 
@@ -174,7 +232,7 @@ function createCard(item, index) {
 }
 
 // ──────────────────────────────────────────────
-// 개별 카드 번역 (제목 + 본문 요약)
+// 개별 카드 번역
 // ──────────────────────────────────────────────
 async function translateCard(cardEl, item) {
   try {
