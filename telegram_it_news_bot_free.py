@@ -2,9 +2,10 @@
 텔레그램 IT 뉴스 봇 (무료 버전)
 - 네이버 뉴스 IT 섹션 스크래핑 + 해외 RSS 3개 수집
 - 영어 뉴스는 deep-translator로 한국어 번역
-- /news 명령어로 최신 뉴스 10개 제공
+- /news 명령어로 최신 뉴스 20개 제공
 """
 
+import os
 import logging
 import asyncio
 import re
@@ -18,7 +19,7 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
 # ── 설정 ──────────────────────────────────────────────
-TELEGRAM_TOKEN = "8504154836:AAE-Wk8XMPASZU9-65TYe7D6AfroJIZDB88"
+TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "8504154836:AAE-Wk8XMPASZU9-65TYe7D6AfroJIZDB88")
 NEWS_COUNT = 20  # 가져올 뉴스 개수
 # ─────────────────────────────────────────────────────
 
@@ -214,7 +215,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "👋 안녕하세요! IT 뉴스 봇입니다.\n\n"
         "📌 사용법:\n"
-        "/news — 최신 IT 뉴스 10개\n"
+        "/news — 최신 IT 뉴스 20개\n"
         "/help — 도움말\n\n"
         "국내외 주요 IT 뉴스를 실시간으로 가져옵니다! 🚀"
     )
@@ -223,7 +224,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "📖 *도움말*\n\n"
-        "/news — 국내외 최신 IT 뉴스 10개를 실시간으로 가져옵니다.\n\n"
+        "/news — 국내외 최신 IT 뉴스 20개를 실시간으로 가져옵니다.\n\n"
         "📡 수집 출처:\n"
         "• 네이버 뉴스 IT 섹션\n"
         "• TechCrunch (한국어 번역)\n"
