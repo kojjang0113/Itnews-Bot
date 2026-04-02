@@ -117,10 +117,10 @@ def parse_date(entry) -> datetime:
     """RSS 항목에서 날짜 파싱"""
     try:
         if hasattr(entry, "published_parsed") and entry.published_parsed:
-            return datetime(*entry.published_parsed[:6])
+            return datetime(*entry.published_parsed[:6], tzinfo=ZoneInfo("UTC"))
     except Exception:
         pass
-    return datetime.min
+    return datetime.min.replace(tzinfo=ZoneInfo("UTC"))
 
 
 def fetch_rss_news(feed_info: dict) -> list[dict]:
