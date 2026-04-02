@@ -1,0 +1,203 @@
+/* CSS 변수 — 기존 COLORS 팔레트 */
+:root {
+  --bg:         #f5f5f5;
+  --panel:      #ffffff;
+  --card:       #ffffff;
+  --card-hover: #f0f4ff;
+  --accent:     #0078d4;
+  --accent2:    #0063b1;
+  --text:       #1a1a1a;
+  --subtext:    #666666;
+  --border:     #d0d0d0;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: "Segoe UI", system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 헤더 */
+.header {
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.refresh-btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 16px;
+  font-size: 0.875rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.refresh-btn:hover {
+  background: var(--accent2);
+}
+
+/* 탭 */
+.tabs {
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.tab {
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  padding: 10px 22px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  color: var(--subtext);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.tab:hover {
+  color: var(--accent);
+}
+
+.tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  font-weight: 600;
+}
+
+/* 메인 콘텐츠 */
+.content {
+  flex: 1;
+  max-width: 860px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 12px 10px 32px;
+}
+
+/* 피드 헤더 */
+.feed-header {
+  font-size: 0.875rem;
+  color: var(--subtext);
+  padding: 4px 4px 10px;
+}
+
+/* 상태 메시지 */
+.status-msg {
+  text-align: center;
+  color: var(--subtext);
+  font-size: 1rem;
+  padding: 60px 0;
+}
+
+.status-msg.error {
+  color: #cc0000;
+}
+
+/* 뉴스 카드 */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px 18px;
+  margin-bottom: 8px;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+.card:hover {
+  background: var(--card-hover);
+  box-shadow: 0 2px 8px rgba(0, 120, 212, 0.08);
+}
+
+.card-index {
+  font-size: 0.8rem;
+  color: var(--accent);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+/* 제목 = 링크 */
+.card-title {
+  display: block;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.45;
+  margin-bottom: 10px;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.card-title:hover {
+  color: var(--accent2);
+  text-decoration: underline;
+}
+
+/* 요약 영역 */
+.card-summary {
+  font-size: 0.875rem;
+  color: var(--subtext);
+  line-height: 1.6;
+}
+
+/* 클릭 유도 상태 */
+.card-summary.clickable {
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 0.8rem;
+  opacity: 0.7;
+  user-select: none;
+}
+
+.card-summary.clickable:hover {
+  opacity: 1;
+}
+
+.card-summary.translating {
+  color: var(--border);
+  font-style: italic;
+}
+
+/* 반응형 */
+@media (max-width: 600px) {
+  .header-title { font-size: 1rem; }
+  .tab { padding: 8px 14px; font-size: 0.875rem; }
+  .card { padding: 12px 14px; }
+  .card-title { font-size: 0.925rem; }
+}
+
+@media (min-width: 601px) and (max-width: 900px) {
+  .content { padding: 12px 16px 32px; }
+}
