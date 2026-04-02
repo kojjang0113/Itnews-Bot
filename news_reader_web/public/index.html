@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>News Reader</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="header">
+    <span class="header-title">News Reader</span>
+    <button class="refresh-btn" id="refreshBtn">새로고침</button>
+  </header>
+
+  <nav class="tabs" id="tabs">
+    <button class="tab active" data-source="TechCrunch">TechCrunch</button>
+    <button class="tab" data-source="BBC News">BBC News</button>
+    <button class="tab" data-source="Ars Technica">Ars Technica</button>
+  </nav>
+
+  <main class="content" id="content">
+    <div class="status-msg">뉴스를 불러오는 중...</div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
