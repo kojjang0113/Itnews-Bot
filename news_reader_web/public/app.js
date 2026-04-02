@@ -130,18 +130,20 @@ async function fetchFeed(source) {
 }
 
 // ──────────────────────────────────────────────
-// MyMemory 번역 — 429 방지를 위해 호출부에서 딜레이 제어
+// Google 번역 비공식 API (API 키 불필요, CORS 허용)
 // ──────────────────────────────────────────────
-async function translateText(text) {
+async function translateText(text, maxChars = 500) {
   if (!text) return "";
-  const q = text.slice(0, 500);
+  const q = text.slice(0, maxChars);
   try {
-    const res = await fetch(
-      `https://api.mymemory.translated.net/get?q=${encodeURIComponent(q)}&langpair=en|ko`
-    );
+    const url =
+      `https://translate.googleapis.com/translate_a/single` +
+      `?client=gtx&sl=en&tl=ko&dt=t&q=${encodeURIComponent(q)}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    if (data.responseStatus === 200) return data.responseData.translatedText || text;
-    return text;
+    // 응답 형식: [[[번역문, 원문, ...], ...], ...]
+    return data[0]?.map((chunk) => chunk[0]).join("") || text;
   } catch {
     return text;
   }
@@ -188,7 +190,7 @@ function renderCards(items, source) {
   // 제목만 순차 번역 — 카드 간 500ms 딜레이
   (async () => {
     for (let i = 0; i < cards.length; i++) {
-      if (i > 0) await sleep(500);
+      if (i > 0) await sleep(300);
       try {
         const krTitle = await translateText(items[i].title);
         if (krTitle) cards[i]._titleEl.textContent = krTitle;
@@ -231,7 +233,7 @@ function createCard(item, index) {
     summaryEl.classList.remove("clickable");
 
     try {
-      const krSummary = await translateText(item.summary);
+      const krSummary = await translateText(item.summary, 100);
       summaryEl.textContent = krSummary || "요약을 불러올 수 없습니다.";
     } catch {
       summaryEl.textContent = "번역 오류";
